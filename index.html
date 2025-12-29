@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-<title>Ghost Rooms</title>
+<title>Ghost Rooms Pro</title>
 
 <style>
 :root {
@@ -28,7 +28,7 @@ body {
   overflow: hidden;
 }
 
-/* --- HEADER --- */
+/* --- HEADER (Instagram Style) --- */
 .top-bar {
   padding: 10px 16px;
   display: flex;
@@ -41,36 +41,36 @@ body {
 }
 
 .room-name { font-weight: 600; font-size: 16px; margin-bottom: 2px; }
-.room-status { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.room-status { font-size: 12px; color: var(--muted); transition: all 0.3s ease; }
 
-/* --- MESSAGES --- */
+/* --- MESSAGES AREA --- */
 #messages {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding-bottom: 120px;
+  gap: 8px;
+  padding-bottom: 100px; 
 }
 
 .msg-wrap {
-  max-width: 85%;
+  max-width: 80%;
   display: flex;
   flex-direction: column;
   position: relative;
-  transition: transform 0.2s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  transition: transform 0.2s ease;
 }
 
 .me { align-self: flex-end; align-items: flex-end; }
 .them { align-self: flex-start; align-items: flex-start; }
 
 .bubble {
-  padding: 12px 16px;
-  border-radius: 20px;
+  padding: 10px 14px;
+  border-radius: 18px;
   font-size: 15px;
   line-height: 1.4;
-  cursor: pointer;
+  position: relative;
 }
 
 .me .bubble { background: var(--accent); color: white; border-bottom-right-radius: 4px; }
@@ -79,37 +79,40 @@ body {
 .timestamp {
   font-size: 10px;
   color: var(--muted);
+  margin-top: 4px;
   height: 0;
   opacity: 0;
+  overflow: hidden;
   transition: all 0.2s ease;
 }
 .timestamp.show { height: 14px; opacity: 1; margin-top: 4px; }
 
-/* Ghost Effect */
+/* Ghost/Shimmer Effect */
 .ghost-text {
   background: linear-gradient(90deg, #444 25%, #888 50%, #444 75%);
   background-size: 200% 100%;
   animation: shimmer 2s infinite;
   color: transparent !important;
-  -webkit-background-clip: text;
   background-clip: text;
-  filter: blur(4px);
+  -webkit-background-clip: text;
+  filter: blur(3px);
 }
+
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 
-/* --- INPUT --- */
+/* --- INPUT SECTION --- */
 .bottom-container {
   position: fixed;
   bottom: 0;
   width: 100%;
   background: var(--bg);
-  padding: 10px 16px calc(15px + env(safe-area-inset-bottom));
+  padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--glass);
 }
 
 .reply-preview {
   display: none;
-  padding: 8px 12px;
+  padding: 8px;
   background: var(--glass);
   border-left: 3px solid var(--accent);
   margin-bottom: 8px;
@@ -118,11 +121,12 @@ body {
 }
 
 .input-row { display: flex; align-items: center; gap: 10px; }
+
 .input-field {
   flex: 1;
   background: var(--input-bg);
-  border-radius: 30px;
-  padding: 2px 16px;
+  border-radius: 24px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   border: 1px solid var(--glass);
@@ -133,82 +137,94 @@ body {
   background: none;
   border: none;
   color: white;
-  padding: 12px 0;
-  font-size: 16px;
   outline: none;
+  font-size: 16px;
 }
 
+.icon-btn { background: none; border: none; font-size: 20px; cursor: pointer; padding: 0 5px; color: var(--muted); }
 .send-btn {
-  width: 45px; height: 45px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: var(--accent);
   border: none;
-  display: flex; align-items: center; justify-content: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  cursor: pointer;
 }
 
-/* --- SHEETS --- */
+/* --- BOTTOM SHEET --- */
 .sheet-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.8);
+  background: rgba(0,0,0,0.7);
   display: none;
   z-index: 1000;
   align-items: flex-end;
 }
+
 .bottom-sheet {
   width: 100%;
-  background: #161616;
-  border-radius: 25px 25px 0 0;
-  padding: 30px 24px;
+  background: #1a1a1a;
+  border-radius: 20px 20px 0 0;
+  padding: 24px;
   transform: translateY(100%);
-  transition: transform 0.3s ease;
+  transition: transform 0.3s ease-out;
 }
+
 .sheet-overlay.active { display: flex; }
 .sheet-overlay.active .bottom-sheet { transform: translateY(0); }
 
+.icon-picker { display: flex; justify-content: space-around; margin: 20px 0; }
+.icon-option { width: 60px; height: 60px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: 0.2s; }
+.icon-option.selected { border-color: var(--accent); transform: scale(1.1); }
+
 .loader {
-  width: 20px; height: 20px;
+  width: 18px; height: 18px;
   border: 2px solid rgba(255,255,255,0.2);
   border-top-color: white;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
 </style>
 </head>
 <body>
 
-<div id="homeScreen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
-  <h1 style="letter-spacing:10px; font-weight:200; margin-bottom:5px;">GHOSTROOM</h1>
-  <p style="color:var(--muted); font-size:12px; margin-bottom:50px;">ANONYMOUS VOID</p>
+<div id="homeScreen" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; padding:40px;">
+  <h1 style="letter-spacing:8px; font-weight:200;">GHOSTROOM</h1>
+  <p style="color:var(--muted); font-size:14px; margin-bottom:40px;">Messages that never existed.</p>
   
-  <div style="width:80%; display:flex; flex-direction:column; gap:15px;">
-    <button onclick="openSheet('private')" style="background:var(--input-bg); color:white; border:1px solid var(--glass); padding:18px; border-radius:15px; font-weight:600;">PRIVATE VOID (2 PERS.)</button>
-    <button onclick="openSheet('community')" style="background:var(--accent); color:white; border:none; padding:18px; border-radius:15px; font-weight:600;">COMMUNITY ROOM</button>
+  <div style="display:flex; flex-direction:column; gap:12px; width:200px;">
+    <button id="btnCreatePrivate" class="send-btn" style="width:100%; border-radius:12px; color:white; font-weight:600;">PRIVATE VOID</button>
+    <button id="btnCreateCommunity" class="send-btn" style="width:100%; border-radius:12px; color:white; font-weight:600; background:#333;">COMMUNITY</button>
   </div>
 </div>
 
 <div id="chatScreen" style="display:none; flex:1; flex-direction:column;">
   <div class="top-bar" id="topBar">
-    <div class="room-name" id="displayRoomName">Void</div>
-    <div class="room-status" id="displayRoomInfo">Tap to Share 🔗</div>
+    <div class="room-name" id="displayRoomName">Private Room</div>
+    <div class="room-status" id="displayRoomInfo">Tap for info</div>
   </div>
 
   <div id="messages"></div>
 
   <div class="bottom-container">
     <div id="replyPreview" class="reply-preview">
-      <span id="replyText">Replying...</span>
-      <span style="float:right" onclick="cancelReply()">✕</span>
+      <span>Replying to message...</span>
+      <span style="float:right; cursor:pointer" onclick="cancelReply()">✕</span>
     </div>
     <div class="input-row">
-      <button class="icon-btn" style="background:none; border:none; font-size:24px; color:var(--muted)" onclick="triggerMedia()">＋</button>
+      <button class="icon-btn" onclick="triggerMedia()">＋</button>
       <div class="input-field">
-        <input type="text" id="msgInput" placeholder="Whisper into the void...">
-        <button id="ghostBtn" style="background:none; border:none; font-size:20px; filter:grayscale(1)" onclick="toggleGhost()">👻</button>
+        <input type="text" id="msgInput" placeholder="Whisper..." autocomplete="off">
+        <button id="ghostBtn" class="icon-btn" title="Ghost Mode">👻</button>
       </div>
       <button id="sendBtn" class="send-btn">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="white"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
       </button>
     </div>
   </div>
@@ -216,9 +232,18 @@ body {
 
 <div id="createSheet" class="sheet-overlay">
   <div class="bottom-sheet">
-    <h2 id="sheetTitle" style="margin-top:0">Room Name</h2>
-    <input type="text" id="roomNameInput" placeholder="Enter name..." style="width:100%; background:var(--input-bg); border:1px solid var(--glass); padding:15px; border-radius:12px; color:white; margin:20px 0;">
-    <button id="confirmCreateBtn" style="width:100%; padding:18px; border-radius:12px; border:none; background:var(--accent); color:white; font-weight:bold;">LAUNCH</button>
+    <h3 id="sheetHeading" style="margin-top:0">Create Community</h3>
+    <p style="font-size:12px; color:var(--muted)">Expires in 24 hours</p>
+    
+    <input type="text" id="newRoomName" placeholder="Group Name" style="width:100%; background:var(--glass); border:none; padding:15px; border-radius:10px; color:white; margin-bottom:15px;">
+    
+    <div class="icon-picker">
+      <img src="https://api.dicebear.com/7.x/identicon/svg?seed=1" class="icon-option selected" onclick="selectIcon(this, 1)">
+      <img src="https://api.dicebear.com/7.x/identicon/svg?seed=2" class="icon-option" onclick="selectIcon(this, 2)">
+      <img src="https://api.dicebear.com/7.x/identicon/svg?seed=3" class="icon-option" onclick="selectIcon(this, 3)">
+    </div>
+
+    <button id="confirmCreateBtn" style="width:100%; padding:15px; border-radius:10px; border:none; background:var(--accent); color:white; font-weight:bold;">CREATE</button>
   </div>
 </div>
 
@@ -237,49 +262,80 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-let currentUser, currentRoomId, activeRoomType;
+let currentUser = null;
+let currentRoomId = null;
 let isGhostMode = false;
-let replyId = null;
+let selectedIconSeed = 1;
+let replyToId = null;
+let activeCreateType = 'community'; 
 
-// --- AUTH & AUTO-JOIN ---
-signInAnonymously(auth).then(async (user) => {
+// Initialize Auth & Check for Join URL
+signInAnonymously(auth).then(async user => {
   currentUser = user.user.uid;
   const urlParams = new URLSearchParams(window.location.search);
   const rid = urlParams.get('room');
   if (rid) joinRoom(rid);
 });
 
-// --- NAVIGATION ---
-window.openSheet = (type) => {
-  activeRoomType = type;
-  document.getElementById('sheetTitle').innerText = type === 'private' ? 'Create Private Void' : 'Create Community';
-  document.getElementById('createSheet').classList.add('active');
+const homeScreen = document.getElementById('homeScreen');
+const chatScreen = document.getElementById('chatScreen');
+const createSheet = document.getElementById('createSheet');
+const msgInput = document.getElementById('msgInput');
+const messagesDiv = document.getElementById('messages');
+
+// --- ROOM CREATION LOGIC ---
+document.getElementById('btnCreatePrivate').onclick = () => {
+    activeCreateType = 'private';
+    document.getElementById('sheetHeading').innerText = "New Private Void";
+    createSheet.classList.add('active');
+};
+
+document.getElementById('btnCreateCommunity').onclick = () => {
+    activeCreateType = 'community';
+    document.getElementById('sheetHeading').innerText = "New Community";
+    createSheet.classList.add('active');
+};
+
+window.selectIcon = (el, seed) => {
+  document.querySelectorAll('.icon-option').forEach(img => img.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedIconSeed = seed;
 };
 
 document.getElementById('confirmCreateBtn').onclick = async function() {
-  const name = document.getElementById('roomNameInput').value.trim() || "The Void";
+  const name = document.getElementById('newRoomName').value.trim();
+  if(!name) return;
+
   this.disabled = true;
   this.innerHTML = '<div class="loader" style="margin:auto"></div>';
 
-  const roomRef = await addDoc(collection(db, "rooms"), {
-    name,
-    type: activeRoomType,
-    creator: currentUser,
-    participants: [currentUser],
-    createdAt: serverTimestamp()
-  });
-
-  window.history.pushState({}, '', `?room=${roomRef.id}`);
-  location.reload(); // Refresh once to initialize chat with new ID
+  try {
+    const roomRef = await addDoc(collection(db, "rooms"), {
+      name: name,
+      type: activeCreateType,
+      creator: currentUser,
+      participants: [currentUser],
+      icon: selectedIconSeed,
+      createdAt: serverTimestamp()
+    });
+    
+    currentRoomId = roomRef.id;
+    window.history.pushState({}, '', `?room=${currentRoomId}`);
+    startChat(name);
+  } catch (e) {
+    this.disabled = false;
+    this.innerText = "CREATE";
+  }
 };
 
+// --- JOIN LOGIC (2-Person Limit for Private) ---
 async function joinRoom(rid) {
   const rSnap = await getDoc(doc(db, "rooms", rid));
   if (!rSnap.exists()) return;
   
   const data = rSnap.data();
   if (data.type === 'private' && data.participants.length >= 2 && !data.participants.includes(currentUser)) {
-    alert("This Private Void is full (Max 2).");
+    alert("This Private Void is full.");
     window.history.pushState({}, '', window.location.pathname);
     return;
   }
@@ -289,88 +345,99 @@ async function joinRoom(rid) {
   startChat(data.name);
 }
 
-// --- CHAT ENGINE ---
+// --- CHAT LOGIC ---
 function startChat(name) {
-  document.getElementById('homeScreen').style.display = 'none';
-  document.getElementById('chatScreen').style.display = 'flex';
+  createSheet.classList.remove('active');
+  homeScreen.style.display = 'none';
+  chatScreen.style.display = 'flex';
   document.getElementById('displayRoomName').innerText = name;
 
   const q = query(collection(db, "rooms", currentRoomId, "messages"), orderBy("createdAt", "asc"));
-  onSnapshot(q, (snap) => {
-    snap.docChanges().forEach(change => {
-      if (change.type === "added") renderMsg(change.doc.id, change.doc.data());
+  onSnapshot(q, (snapshot) => {
+    snapshot.docChanges().forEach(change => {
+      if (change.type === "added") renderMessage(change.doc.id, change.doc.data());
     });
-    const m = document.getElementById('messages');
-    m.scrollTop = m.scrollHeight;
+    messagesDiv.scrollTop = messagesDiv.scrollHeight;
   });
 }
 
-function renderMsg(id, data) {
+function renderMessage(id, data) {
   const isMe = data.sender === currentUser;
   const wrap = document.createElement('div');
   wrap.className = `msg-wrap ${isMe ? 'me' : 'them'}`;
-  
+  wrap.id = `msg-${id}`;
+
   const bubble = document.createElement('div');
   bubble.className = `bubble ${data.isGhost ? 'ghost-text' : ''}`;
   bubble.innerText = data.text;
 
   const ts = document.createElement('div');
   ts.className = 'timestamp';
-  ts.innerText = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : "Just now";
+  ts.innerText = data.createdAt ? new Date(data.createdAt.seconds * 1000).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '...';
 
   bubble.onclick = () => {
-    if (data.isGhost && !isMe) {
-      bubble.classList.remove('ghost-text');
-      setTimeout(() => wrap.style.opacity = '0', 3000);
+    if(data.isGhost && !isMe) {
+        bubble.classList.remove('ghost-text');
+        setTimeout(() => wrap.style.opacity = '0', 2000);
+        setTimeout(() => wrap.remove(), 2300);
     }
     ts.classList.toggle('show');
+    setTimeout(() => ts.classList.remove('show'), 2000);
   };
 
-  // Swipe logic
   let startX = 0;
-  wrap.addEventListener('touchstart', (e) => startX = e.touches[0].clientX);
-  wrap.addEventListener('touchmove', (e) => {
-    let x = e.touches[0].clientX - startX;
-    if (x > 50) {
-      wrap.style.transform = "translateX(50px)";
-      setupReply(data.text, id);
+  wrap.ontouchstart = (e) => startX = e.touches[0].clientX;
+  wrap.ontouchmove = (e) => {
+    let diff = e.touches[0].clientX - startX;
+    if (diff > 50) { 
+      wrap.style.transform = `translateX(40px)`;
+      setReply(id, data.text);
     }
-  });
-  wrap.addEventListener('touchend', () => wrap.style.transform = "translateX(0)");
+  };
+  wrap.ontouchend = () => wrap.style.transform = `translateX(0)`;
 
   wrap.append(bubble, ts);
-  document.getElementById('messages').append(wrap);
+  messagesDiv.appendChild(wrap);
 }
 
-// --- INPUT LOGIC ---
-window.toggleGhost = () => {
+// --- INPUT ACTIONS ---
+document.getElementById('ghostBtn').onclick = () => {
   isGhostMode = !isGhostMode;
-  document.getElementById('ghostBtn').style.filter = isGhostMode ? "none" : "grayscale(1)";
+  document.getElementById('ghostBtn').style.color = isGhostMode ? 'var(--accent)' : 'var(--muted)';
+  msgInput.placeholder = isGhostMode ? "One-time whisper..." : "Whisper...";
 };
 
 document.getElementById('sendBtn').onclick = async () => {
-  const text = document.getElementById('msgInput').value.trim();
-  if (!text) return;
+  const text = msgInput.value.trim();
+  if(!text) return;
+  msgInput.value = '';
 
-  document.getElementById('msgInput').value = '';
   await addDoc(collection(db, "rooms", currentRoomId, "messages"), {
     text,
     sender: currentUser,
     isGhost: isGhostMode,
-    replyTo: replyId,
+    replyTo: replyToId,
     createdAt: serverTimestamp()
   });
+  
   cancelReply();
+  if(isGhostMode) {
+    isGhostMode = false;
+    document.getElementById('ghostBtn').style.color = 'var(--muted)';
+    msgInput.placeholder = "Whisper...";
+  }
 };
 
-function setupReply(text, id) {
-  replyId = id;
-  document.getElementById('replyPreview').style.display = 'block';
-  document.getElementById('replyText').innerText = `Replying: ${text.substring(0,25)}...`;
+function setReply(id, text) {
+  replyToId = id;
+  const bar = document.getElementById('replyPreview');
+  bar.style.display = 'block';
+  bar.querySelector('span').innerText = `Replying: ${text.substring(0,20)}...`;
+  msgInput.focus();
 }
 
 window.cancelReply = () => {
-  replyId = null;
+  replyToId = null;
   document.getElementById('replyPreview').style.display = 'none';
 };
 
@@ -379,14 +446,22 @@ let lastTap = 0;
 document.getElementById('topBar').onclick = () => {
   const now = Date.now();
   if (now - lastTap < 300) {
-    navigator.share({ title: 'Join Void', url: window.location.href });
+    if (navigator.share) navigator.share({ title: 'Join My Void', url: window.location.href });
   } else {
     const info = document.getElementById('displayRoomInfo');
-    info.innerText = "Link Copied!";
     navigator.clipboard.writeText(window.location.href);
-    setTimeout(() => info.innerText = "Tap to Share 🔗", 2000);
+    info.innerText = "Link Copied!";
+    setTimeout(() => info.innerText = "Tap for info", 2000);
   }
   lastTap = now;
+};
+
+window.triggerMedia = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*,video/*';
+    input.onchange = () => alert('Media coming soon');
+    input.click();
 };
 </script>
 </body>
