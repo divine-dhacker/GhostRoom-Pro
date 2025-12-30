@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>GHOSTROOM | Anonymous Social</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <style>
+        :root { --bg: #050505; --card: #121212; --accent: #ff2d55; --border: rgba(255, 255, 255, 0.08); }
+        body { background-color: var(--bg); color: white; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; overflow: hidden; height: 100dvh; -webkit-tap-highlight-color: transparent; }
+        .screen { display: none; height: 100%; flex-direction: column; animation: fadeIn 0.3s ease-out; }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 28px; transition: transform 0.2s; position: relative; overflow: hidden; }
+        .card:active { transform: scale(0.98); }
+        .msg-bubble { max-width: 85%; padding: 14px 18px; border-radius: 24px; font-size: 14px; position: relative; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .msg-ghost { filter: blur(12px); cursor: pointer; background: linear-gradient(45deg, #1a1a1a, #2a2a2a); }
+        .msg-ghost.revealing { filter: blur(0); border: 1px solid var(--accent); }
+        .msg-burned { opacity: 0.15; filter: grayscale(1) blur(2px); pointer-events: none; }
+        .loading-shimmer { background: linear-gradient(90deg, #121212 25%, #1a1a1a 50%, #121212 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
+        @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+        nav { position: fixed; bottom: 0; left: 0; right: 0; height: 85px; background: rgba(5, 5, 5, 0.9); backdrop-filter: blur(25px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding-bottom: 20px; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: #444; gap: 4px; transition: 0.3s; cursor: pointer; }
+        .nav-item.active { color: white; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .offline-banner { position: fixed; top: 0; left: 0; right: 0; background: #ff2d55; color: white; font-size: 10px; font-weight: 800; text-align: center; padding: 4px; z-index: 1000; display: none; text-transform: uppercase; letter-spacing: 2px; }
+        .toast { position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); background: white; color: black; padding: 10px 20px; border-radius: 50px; font-weight: 800; font-size: 10px; z-index: 200; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translate(-50%, 20px); opacity: 0; } to { transform: translate(-50%, 0); opacity: 1; } }
+    </style>
+
+    <script>
+        window.changeScreen = (name) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(`screen-${name}`).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            const navBtn = document.getElementById(`nav-${name}`);
+            if(navBtn) navBtn.classList.add('active');
+            document.getElementById('bottom-nav').style.display = name === 'chat' ? 'none' : 'flex';
+        };
+        window.openGistModal = () => document.getElementById('modal-gist')?.classList.remove('hidden');
+        window.closeGistModal = () => document.getElementById('modal-gist')?.classList.add('hidden');
+    </script>
+</head>
+<body>
+
+    <div id="offline-msg" class="offline-banner">Connection Lost - Ghosting Offline...</div>
+
+    <!-- HOME SCREEN -->
+    <div id="screen-home" class="screen active p-6 overflow-y-auto pb-32 hide-scroll">
+        <header class="mt-8 mb-10 flex justify-between items-start">
+            <div>
+                <h1 class="text-4xl font-extrabold tracking-tighter italic">GHOSTROOM</h1>
+                <p class="text-white/30 text-[10px] mt-1 font-bold tracking-widest uppercase" id="user-id-display">Syncing...</p>
+            </div>
+            <div id="connection-dot" class="w-2 h-2 rounded-full bg-green-500 mt-4 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+        </header>
+
+        <div class="grid grid-cols-2 gap-4 mb-10">
+            <button id="btn-create-private" class="card p-6 text-left disabled:opacity-50">
+                <i data-lucide="zap" class="text-pink-500 mb-3"></i>
+                <h3 class="font-bold text-sm">Secret Room</h3>
+                <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Burn on View</p>
+                <div id="load-private" class="hidden absolute inset-0 loading-shimmer opacity-40"></div>
+            </button>
+            <button id="btn-create-community" class="card p-6 text-left disabled:opacity-50">
+                <i data-lucide="flame" class="text-orange-500 mb-3"></i>
+                <h3 class="font-bold text-sm">Public Vibe</h3>
+                <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Global Chat</p>
+                <div id="load-public" class="hidden absolute inset-0 loading-shimmer opacity-40"></div>
+            </button>
+        </div>
+
+        <div class="mb-8">
+            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4 px-2 flex items-center gap-2">
+                <i data-lucide="trending-up" size="12"></i> Global Pulse
+            </h4>
+            <div id="leaderboard" class="space-y-3">
+                <div class="card p-4 loading-shimmer opacity-10 h-16"></div>
+            </div>
+        </div>
+
+        <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4 px-2">Recent Frequency</h4>
+        <div id="history-container" class="space-y-3"></div>
+    </div>
+
+    <!-- GIST FEED SCREEN -->
+    <div id="screen-gist" class="screen overflow-y-auto pb-32 hide-scroll">
+        <header class="sticky top-0 p-6 bg-black/80 backdrop-blur-xl z-10 flex justify-between items-end border-b border-white/5">
+            <div>
+                <h2 class="text-2xl font-black italic">GistMe</h2>
+                <p class="text-[10px] text-white/30 font-black uppercase tracking-widest">The Public Pulse</p>
+            </div>
+            <button onclick="window.openGistModal()" class="w-12 h-12 bg-white text-black rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform">
+                <i data-lucide="plus"></i>
+            </button>
+        </header>
+        <div id="gist-feed" class="p-4 space-y-6"></div>
+    </div>
+
+    <!-- CHAT SCREEN -->
+    <div id="screen-chat" class="screen relative">
+        <header class="p-6 flex items-center justify-between border-b border-white/5 bg-black/50 backdrop-blur-lg z-20">
+            <button onclick="window.location.hash = ''" class="text-white/30"><i data-lucide="chevron-left"></i></button>
+            <div class="text-center">
+                <p class="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]" id="chat-title">Whisper Room</p>
+                <p class="text-[9px] text-white/20 font-bold" id="chat-subtitle">#000000</p>
+            </div>
+            <button id="btn-copy-link" class="p-3 bg-white/5 rounded-2xl border border-white/10"><i data-lucide="share-2" size="16"></i></button>
+        </header>
+
+        <div id="info-bar" class="absolute top-0 left-0 right-0 bg-blue-500 text-white text-xs font-bold text-center p-2 transform -translate-y-full transition-transform duration-300 z-10 flex items-center justify-between">
+            <span>Triple tap your message to delete it.</span>
+            <button id="close-info-bar" class="text-white"><i data-lucide="x" size="14"></i></button>
+        </div>
+        
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 hide-scroll pt-12"></div>
+
+        <div id="reply-preview" class="hidden px-4 py-3 bg-white/5 border-t border-white/10 flex justify-between items-center text-[10px]">
+            <div class="border-l-2 border-pink-500 pl-3">
+                <p class="text-white/40 uppercase font-black">Replying to</p>
+                <p id="reply-text" class="text-white/80 italic truncate max-w-[200px]"></p>
+            </div>
+            <button id="btn-cancel-reply" class="p-2"><i data-lucide="x" size="14"></i></button>
+        </div>
+
+        <div class="p-4 pb-8 bg-black">
+            <form id="chat-form" class="flex items-end gap-2 p-2 bg-white/5 border border-white/10 rounded-[30px] focus-within:border-white/20 transition-colors">
+                <button type="button" id="btn-ghost" class="w-10 h-10 rounded-full flex items-center justify-center text-white/20 transition-colors">
+                    <i data-lucide="ghost" size="18"></i>
+                </button>
+                <textarea id="chat-input" rows="1" class="flex-1 bg-transparent py-3 px-1 text-sm outline-none resize-none placeholder:text-white/10" placeholder="Type a message..."></textarea>
+                <button type="submit" id="btn-chat-send" class="w-10 h-10 bg-white text-black rounded-full flex items-center justify-center disabled:opacity-50">
+                    <i data-lucide="arrow-up" size="20"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL -->
+    <div id="modal-gist" class="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl p-6 hidden flex-col items-center justify-center">
+        <div class="w-full max-w-sm card p-8">
+            <button onclick="window.closeGistModal()" class="absolute top-6 right-6 text-white/20"><i data-lucide="x"></i></button>
+            <h2 class="text-2xl font-black mb-6 italic text-center uppercase tracking-tighter">New Gist</h2>
+            <textarea id="gist-text-input" class="w-full h-32 bg-transparent text-white outline-none text-lg resize-none mb-6 placeholder:text-white/10" placeholder="Leak the tea..."></textarea>
+            <div id="gist-img-preview-container" class="hidden mb-6 relative">
+                <img id="gist-img-preview" class="w-full h-40 object-cover rounded-2xl">
+                <button id="btn-clear-img" class="absolute top-2 right-2 p-2 bg-black/60 rounded-full"><i data-lucide="x" size="12"></i></button>
+            </div>
+            <button id="btn-add-photo" class="w-full h-14 rounded-2xl bg-white/5 border border-dashed border-white/20 flex items-center justify-center gap-3 text-[10px] font-black uppercase text-white/40 mb-4">
+                <i data-lucide="camera" size="18"></i> Add Visual
+            </button>
+            <input type="file" id="gist-file-input" class="hidden" accept="image/*">
+            <button id="btn-submit-gist" class="w-full h-14 bg-white text-black rounded-2xl font-black text-sm disabled:opacity-50">PUBLISH TO VOID</button>
+        </div>
+    </div>
+
+    <nav id="bottom-nav">
+        <div onclick="window.changeScreen('home')" id="nav-home" class="nav-item active"><i data-lucide="hash"></i><span class="text-[8px] font-black uppercase tracking-widest">Rooms</span></div>
+        <div onclick="window.changeScreen('gist')" id="nav-gist" class="nav-item"><i data-lucide="globe"></i><span class="text-[8px] font-black uppercase tracking-widest">GistMe</span></div>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, updateDoc, deleteDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCEUDD0iB4iGFSDoC0a3wCXF8PT098Su3w",
+            authDomain: "anonymous-messaging-f93c0.firebaseapp.com",
+            projectId: "anonymous-messaging-f93c0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'ghostroom-v3-prod';
+
+        let user = null;
+        let currentRoomId = null;
+        let isGhostMode = false;
+        let replyingTo = null;
+        let pendingImage = null;
+        let isProcessing = false;
+
+        lucide.createIcons();
+
+        const shareRoom = async (roomId) => {
+            const url = `${window.location.origin}${window.location.pathname}#${roomId}`;
+            const text = `Join my secret chat on Ghostroom: #${roomId.toUpperCase()}`;
+            const title = 'Ghostroom Chat';
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title, text, url });
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        showToast("Couldn't share content.");
+                    }
+                }
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast("LINK COPIED TO CLIPBOARD");
+            }
+        };
+
+        // UTILS
+        const showToast = (msg) => {
+            const t = document.createElement('div');
+            t.className = 'toast';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => t.remove(), 2500);
+        };
+
+        const sanitize = (str) => str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+        const shareRoom = async (roomId) => {
+            const url = `${window.location.origin}${window.location.pathname}#${roomId}`;
+            const text = `Join my secret chat on Ghostroom: #${roomId.toUpperCase()}`;
+            const title = 'Ghostroom Chat';
+
+            if (navigator.share) {
+                try {
+                    await navigator.share({ title, text, url });
+                } catch (error) {
+                    if (error.name !== 'AbortError') {
+                        showToast("Couldn't share content.");
+                    }
+                }
+            } else {
+                navigator.clipboard.writeText(url);
+                showToast("LINK COPIED TO CLIPBOARD");
+            }
+        };
+
+        // INTERNET MONITOR
+        const updateOnlineStatus = () => {
+            const isOnline = navigator.onLine;
+            document.getElementById('offline-msg').style.display = isOnline ? 'none' : 'block';
+            document.getElementById('connection-dot').className = `w-2 h-2 rounded-full mt-4 shadow-lg ${isOnline ? 'bg-green-500 shadow-green-500/50' : 'bg-red-500 shadow-red-500/50'}`;
+        };
+        window.addEventListener('online', updateOnlineStatus);
+        window.addEventListener('offline', updateOnlineStatus);
+
+        // AUTH
+        onAuthStateChanged(auth, (u) => {
+            if (u) {
+                user = u;
+                document.getElementById('user-id-display').textContent = `UID: ${u.uid.substring(0,6)}`;
+                loadHistory();
+                loadGists();
+                checkHash();
+            } else {
+                signInAnonymously(auth);
+            }
+        });
+
+        const checkHash = () => {
+            const hash = window.location.hash.slice(1);
+            if (hash.startsWith('gist-')) {
+                window.changeScreen('gist');
+                // Could scroll to element here
+            } else if (hash) {
+                initChat(hash);
+            } else {
+                window.changeScreen('home');
+            }
+        };
+        window.onhashchange = checkHash;
+
+        // ROOM LOGIC
+        const createRoom = async (type) => {
+            if(!user || isProcessing) return;
+            isProcessing = true;
+            document.getElementById(`load-${type}`).classList.remove('hidden');
+
+            try {
+                const id = type === 'community' ? 'global' : Math.random().toString(36).substring(2, 10);
+                const roomData = {
+                    type,
+                    createdAt: serverTimestamp(),
+                    members: [user.uid]
+                };
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), roomData, { merge: true });
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'history', id), { roomId: id, type, timestamp: Date.now() });
+                window.location.hash = id;
+            } catch (e) { showToast("Signal Failed"); }
+            
+            isProcessing = false;
+            document.getElementById(`load-${type}`).classList.add('hidden');
+        };
+
+        // CHAT ENGINE
+        let unsubChat = null;
+        const initChat = async (roomId) => {
+            const infoBar = document.getElementById('info-bar');
+            infoBar.classList.remove('-translate-y-full');
+
+            document.getElementById('close-info-bar').onclick = () => {
+                infoBar.classList.add('-translate-y-full');
+            };
+
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+            const roomSnap = await getDoc(roomRef);
+
+            if (roomSnap.exists()) {
+                const roomData = roomSnap.data();
+                if (roomData.type === 'private' && roomData.members.length >= 2 && !roomData.members.includes(user.uid)) {
+                    showToast("This secret room is full.");
+                    window.location.hash = '';
+                    return;
+                }
+                
+                if (roomData.type === 'private' && !roomData.members.includes(user.uid)) {
+                    await updateDoc(roomRef, {
+                        members: [...roomData.members, user.uid]
+                    });
+                }
+            }
+
+            currentRoomId = roomId;
+            window.changeScreen('chat');
+            document.getElementById('chat-subtitle').textContent = `#${roomId.toUpperCase()}`;
+            document.getElementById('btn-copy-link').onclick = () => shareRoom(roomId);
+            const msgRef = collection(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId, 'messages');
+            const q = query(msgRef, orderBy('createdAt', 'asc'), limit(60));
+
+            if (unsubChat) unsubChat();
+            unsubChat = onSnapshot(q, (snap) => {
+                const container = document.getElementById('chat-messages');
+                container.innerHTML = '';
+                snap.docs.forEach(docSnap => {
+                    const m = { id: docSnap.id, ...docSnap.data() };
+                    const isMe = m.sender === user.uid;
+                    const isBurned = m.status === 'burned';
+
+                    const wrapper = document.createElement('div');
+                    wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full`;
+
+                    wrapper.innerHTML = `
+                        ${m.replyTo ? `<div class="text-[9px] text-white/20 mb-1 px-3">↳ ${sanitize(m.replyTo.text).substring(0,15)}...</div>` : ''}
+                        <div class="msg-bubble ${isMe ? 'bg-pink-600' : 'bg-white/5 border border-white/10'} 
+                             ${m.isGhost && !isBurned ? 'msg-ghost' : ''} ${isBurned ? 'msg-burned' : ''}"
+                             id="msg-${m.id}">
+                            ${isBurned ? 'VANISHED' : sanitize(m.text)}
+                        </div>
+                        <div id="camera-icon-${m.id}" class="hidden absolute bottom-0 right-0 p-2"><i data-lucide="camera" size="14"></i></div>`;
+
+                    // Swipe to Reply
+                    let startX = 0;
+                    wrapper.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+                    wrapper.addEventListener('touchend', e => {
+                        if (e.changedTouches[0].clientX - startX > 80) {
+                            if (window.navigator.vibrate) window.navigator.vibrate(5);
+                            setReply(m);
+                        }
+                    });
+
+                    wrapper.onclick = () => {
+                        if (m.isGhost && !isBurned) {
+                            revealGhost(m.id);
+                        } else if (!isMe) {
+                            const cameraIcon = document.getElementById(`camera-icon-${m.id}`);
+                            cameraIcon.classList.toggle('hidden');
+                        }
+                    };
+                    
+                    document.getElementById(`camera-icon-${m.id}`).onclick = (e) => {
+                        e.stopPropagation();
+                        const chatMessages = document.getElementById('chat-messages');
+                        html2canvas(chatMessages).then(canvas => {
+                            canvas.toBlob(blob => {
+                                const file = new File([blob], "chat.png", { type: "image/png" });
+                                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                    navigator.share({
+                                        files: [file],
+                                        title: 'GistMe Chat',
+                                        text: 'Check out this chat from GistMe!',
+                                    });
+                                } else {
+                                    showToast("Sharing not supported on this browser.");
+                                }
+                            });
+                        });
+                    };
+
+                    let lastTap = 0;
+                    let tapCount = 0;
+                    wrapper.addEventListener('touchend', (e) => {
+                        const now = new Date().getTime();
+                        const timeSinceLastTap = now - lastTap;
+
+                        if (timeSinceLastTap < 300 && timeSinceLastTap > 0) {
+                            tapCount++;
+                        } else {
+                            tapCount = 1;
+                        }
+                        lastTap = now;
+
+                        if (tapCount === 3 && isMe) {
+                            e.preventDefault();
+                            deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'messages', m.id));
+                        }
+                    });
+
+                    container.appendChild(wrapper);
+                });
+                container.scrollTop = container.scrollHeight;
+            });
+        };
+
+        const revealGhost = async (id) => {
+            const el = document.getElementById(`msg-${id}`);
+            if(el.classList.contains('revealing')) return;
+            el.classList.add('revealing');
+            setTimeout(async () => {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'messages', id), { status: 'burned' });
+            }, 5000);
+        };
+
+        const setReply = (m) => {
+            replyingTo = m;
+            document.getElementById('reply-text').textContent = m.text;
+            document.getElementById('reply-preview').classList.remove('hidden');
+            document.getElementById('chat-input').focus();
+        };
+
+        // GISTME CORE
+        const loadGists = () => {
+            const gistRef = collection(db, 'artifacts', appId, 'public', 'data', 'gists');
+            const q = query(gistRef, orderBy('createdAt', 'desc'), limit(40));
+            onSnapshot(q, (snap) => {
+                const container = document.getElementById('gist-feed');
+                const leaderboard = document.getElementById('leaderboard');
+                container.innerHTML = '';
+                
+                const gists = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                
+                // Update Leaderboard (Top 3 by Vibes)
+                const topGists = [...gists].sort((a,b) => (b.vibes?.length || 0) - (a.vibes?.length || 0)).slice(0, 3);
+                leaderboard.innerHTML = '';
+                topGists.forEach((tg, i) => {
+                    const row = document.createElement('div');
+                    row.className = 'card p-4 flex justify-between items-center';
+                    row.innerHTML = `<div class="flex items-center gap-3">
+                        <span class="text-white/20 font-black italic">0${i+1}</span>
+                        <p class="text-[11px] font-bold truncate max-w-[150px]">${sanitize(tg.text)}</p>
+                    </div>
+                    <span class="text-[9px] font-black text-pink-500">${tg.vibes?.length || 0} VIBES</span>`;
+                    leaderboard.appendChild(row);
+                });
+
+                // Render Feed
+                gists.forEach(g => {
+                    const isCreator = g.sender === user.uid;
+                    const vibes = g.vibes || [];
+                    const isVibed = vibes.includes(user.uid);
+
+                    const el = document.createElement('div');
+                    el.className = `card p-6 ${isVibed ? 'border-pink-500/20' : ''}`;
+                    el.innerHTML = `
+                        <div class="flex justify-between items-start mb-4">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-pink-500 to-indigo-600"></div>
+                                <span class="text-[10px] font-black text-white/40 tracking-widest uppercase">anon_${g.sender?.substring(0,4)}</span>
+                            </div>
+                            ${isCreator ? `<button onclick="window.deleteGist('${g.id}')" class="text-white/10"><i data-lucide="trash-2" size="14"></i></button>` : ''}
+                        </div>
+                        <p class="text-sm leading-relaxed mb-4 text-white/80">${sanitize(g.text)}</p>
+                        ${g.image ? `<img src="${g.image}" class="w-full h-44 object-cover rounded-2xl border border-white/5 mb-4">` : ''}
+                        <div class="flex gap-6 border-t border-white/5 pt-4">
+                           <button onclick="window.toggleVibe('${g.id}', ${JSON.stringify(vibes).replace(/"/g, '&quot;')})"
+                                   class="flex items-center gap-2 text-[10px] font-black tracking-tighter transition-all ${isVibed ? 'text-pink-500' : 'text-white/20 hover:text-white/40'}">
+                                <i data-lucide="heart" size="14" ${isVibed ? 'fill="currentColor"' : ''}></i> ${vibes.length} VIBES
+                           </button>
+                           <button onclick="window.echoPost('${g.id}')" class="flex items-center gap-2 text-[10px] font-black text-white/20 hover:text-white/40">
+                                <i data-lucide="share" size="14"></i> ECHO
+                           </button>
+                        </div>`;
+                    container.appendChild(el);
+                });
+                lucide.createIcons();
+            });
+        };
+
+        // GIST ACTIONS
+        window.toggleVibe = async (id, current) => {
+            if(isProcessing) return;
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'gists', id);
+            let next = [...current];
+            const idx = next.indexOf(user.uid);
+            if(idx > -1) next.splice(idx, 1);
+            else next.push(user.uid);
+            await updateDoc(ref, { vibes: next });
+        };
+
+        window.echoPost = (id) => {
+            navigator.clipboard.writeText(`${window.location.href}#gist-${id}`);
+            showToast("LINK ECHOED TO VOID");
+        };
+
+        window.deleteGist = async (id) => {
+            if(confirm("Erase post?")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'gists', id));
+        };
+
+        // EVENT BINDINGS
+        document.getElementById('btn-create-private').onclick = () => createRoom('private');
+        document.getElementById('btn-create-community').onclick = () => createRoom('community');
+        
+        document.getElementById('btn-ghost').onclick = () => {
+            isGhostMode = !isGhostMode;
+            document.getElementById('btn-ghost').classList.toggle('text-pink-500', isGhostMode);
+            document.getElementById('btn-ghost').classList.toggle('text-white/20', !isGhostMode);
+        };
+
+        document.getElementById('chat-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('chat-input');
+            if(!input.value.trim() || isProcessing) return;
+            isProcessing = true;
+            document.getElementById('btn-chat-send').disabled = true;
+
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'messages'), {
+                text: input.value, sender: user.uid, createdAt: serverTimestamp(),
+                isGhost: isGhostMode, status: 'active',
+                replyTo: replyingTo ? { text: replyingTo.text } : null
+            });
+
+            input.value = '';
+            input.style.height = 'auto';
+            replyingTo = null;
+            document.getElementById('reply-preview').classList.add('hidden');
+            isProcessing = false;
+            document.getElementById('btn-chat-send').disabled = false;
+        };
+
+        document.getElementById('btn-submit-gist').onclick = async () => {
+            const input = document.getElementById('gist-text-input');
+            if((!input.value.trim() && !pendingImage) || isProcessing) return;
+            isProcessing = true;
+            document.getElementById('btn-submit-gist').disabled = true;
+
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'gists'), {
+                text: input.value, image: pendingImage, sender: user.uid, vibes: [], createdAt: serverTimestamp()
+            });
+
+            input.value = '';
+            pendingImage = null;
+            document.getElementById('gist-img-preview-container').classList.add('hidden');
+            document.getElementById('btn-submit-gist').disabled = false;
+            window.closeGistModal();
+            isProcessing = false;
+        };
+
+        // ASSETS
+        document.getElementById('btn-add-photo').onclick = () => document.getElementById('gist-file-input').click();
+        document.getElementById('gist-file-input').onchange = (e) => {
+            const file = e.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    pendingImage = ev.target.result;
+                    document.getElementById('gist-img-preview').src = pendingImage;
+                    document.getElementById('gist-img-preview-container').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        document.getElementById('chat-input').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+
+        const loadHistory = () => {
+            const histRef = collection(db, 'artifacts', appId, 'users', user.uid, 'history');
+            onSnapshot(histRef, (snap) => {
+                const container = document.getElementById('history-container');
+                container.innerHTML = '';
+                snap.docs.sort((a,b) => b.data().timestamp - a.data().timestamp).forEach(d => {
+                    const data = d.data();
+                    const el = document.createElement('div');
+                    el.className = 'card p-5 flex justify-between items-center cursor-pointer';
+                    el.onclick = () => window.location.hash = data.roomId;
+                    el.innerHTML = `
+                        <div class="flex items-center gap-4">
+                            <div class="w-1.5 h-1.5 rounded-full ${data.type === 'private' ? 'bg-pink-500' : 'bg-orange-500'}"></div>
+                            <div>
+                                <div class="font-bold text-sm">#${data.roomId.toUpperCase()}</div>
+                                <div class="text-[8px] text-white/20 font-black uppercase tracking-tighter">${data.type} ROOM</div>
+                            </div>
+                        </div>
+                        <i data-lucide="chevron-right" size="14" class="text-white/10"></i>`;
+                    container.appendChild(el);
+                });
+                lucide.createIcons();
+            });
+        };
+
+        document.getElementById('btn-cancel-reply').onclick = () => {
+            replyingTo = null;
+            document.getElementById('reply-preview').classList.add('hidden');
+        };
+    </script>
+</body>
+</html>
