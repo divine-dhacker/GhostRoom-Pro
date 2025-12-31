@@ -41,6 +41,12 @@
             position: relative; 
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1); 
         }
+        .msg-sent {
+            border-bottom-right-radius: 4px;
+        }
+        .msg-received {
+            border-bottom-left-radius: 4px;
+        }
         .msg-ghost { filter: blur(12px); cursor: pointer; background: linear-gradient(45deg, #1a1a1a, #2a2a2a); }
         .msg-ghost.revealing { filter: blur(0); border: 1px solid var(--accent); }
         .msg-burned { opacity: 0.1; filter: grayscale(1) blur(2px); pointer-events: none; }
@@ -139,6 +145,7 @@
             <div class="text-center">
                 <p class="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]" id="chat-title">Whisper Room</p>
                 <p class="text-[9px] text-white/20 font-bold" id="chat-subtitle">#000000</p>
+                <p class="text-[9px] text-white/40 font-bold" id="creator-id"></p>
                 <p class="text-[8px] text-white/40 font-bold mt-1 uppercase tracking-wider flex items-center justify-center gap-1">
                     <i data-lucide="clock" size="8"></i> <span id="timer-display">--:--:--</span> LEFT
                 </p>
@@ -154,7 +161,7 @@
              </p>
         </div>
 
-        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 hide-scroll"></div>
+        <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2 hide-scroll"></div>
         
         <div id="reply-preview" class="hidden px-4 py-3 bg-white/5 border-t border-white/10 flex justify-between items-center text-[10px]">
             <div class="border-l-2 border-pink-500 pl-3">
@@ -342,7 +349,7 @@ try {
                 const expiresAt = now + (24 * 60 * 60 * 1000);
 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid), {
-                    id: rid, type: 'community', createdAt: now, expiresAt
+                    id: rid, type: 'community', ownerId: user.uid, createdAt: now, expiresAt
                 });
                 await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid), {
                     roomId: rid, type: 'community', timestamp: now, expiresAt
@@ -376,13 +383,29 @@ try {
             currentRoom = data;
             document.getElementById('chat-title').textContent = data.type === 'request' ? 'Request Room' : 'Global Vibe';
             document.getElementById('chat-subtitle').textContent = `#${rid.toUpperCase()}`;
+            if (data.ownerId) {
+                document.getElementById('creator-id').textContent = `CREATOR: ${data.ownerId.substring(0, 6).toUpperCase()}`;
+            }
             showScreen('chat');
             startTimer(data.expiresAt);
             listenToChat(rid);
             
-            await updateDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid), {
-                unread: 0
-            }).catch(() => {});
+            // Add to history if not already there
+            const historyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid);
+            const historySnap = await getDoc(historyRef);
+            if (!historySnap.exists()) {
+                await setDoc(historyRef, {
+                    roomId: rid,
+                    type: data.type,
+                    timestamp: Date.now(),
+                    expiresAt: data.expiresAt,
+                    unread: 0
+                });
+            } else {
+                await updateDoc(historyRef, {
+                    unread: 0
+                }).catch(() => {});
+            }
         };
 
         const listenToChat = (rid) => {
@@ -410,7 +433,7 @@ try {
 
                     wrapper.innerHTML = `
                         ${identityLabel}
-                        <div id="msg-${mid}" class="msg-bubble ${isMe ? 'bg-pink-600' : 'bg-white/5 border border-white/10'} 
+                        <div id="msg-${mid}" class="msg-bubble ${isMe ? 'bg-pink-600 msg-sent' : 'bg-white/5 border border-white/10 msg-received'}
                              ${m.isGhost && !isBurned ? 'msg-ghost' : ''} ${isBurned ? 'msg-burned' : ''}">
                             ${isBurned ? '✦ VANISHED ✦' : m.text}
                         </div>
