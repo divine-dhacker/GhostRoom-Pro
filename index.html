@@ -121,9 +121,69 @@
             transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #toast.show { transform: translateX(-50%) translateY(0); }
+
+        #loading-overlay {
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        }
+        #loading-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 1s linear infinite;
+        }
+
+        .prompt-card {
+            flex-shrink: 0;
+            width: 160px;
+            padding: 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            line-height: 1.4;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+            border: 1px solid transparent;
+            background-size: 200% 200%;
+            color: rgba(0,0,0,0.7);
+        }
+
+        .prompt-card:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255,255,255,0.3);
+        }
+        .prompt-card-1 { background-image: linear-gradient(45deg, #ff9a9e 0%, #fad0c4 100%); }
+        .prompt-card-2 { background-image: linear-gradient(45deg, #a18cd1 0%, #fbc2eb 100%); }
+        .prompt-card-3 { background-image: linear-gradient(45deg, #84fab0 0%, #8fd3f4 100%); }
+        .prompt-card-4 { background-image: linear-gradient(45deg, #d299c2 0%, #fef9d7 100%); }
+        .prompt-card-5 { background-image: linear-gradient(45deg, #fccb90 0%, #d57eeb 100%); }
+        .prompt-card-6 { background-image: linear-gradient(45deg, #ff758c 0%, #ff7eb3 100%); }
+
+        .nav-info-item {
+            font-size: 9px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.4);
+            transform: translateY(10px);
+        }
+        .nav-info-item.active {
+            opacity: 1;
+            transform: translateY(0);
+        }
     </style>
 </head>
 <body>
+
+    <div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-50 hidden">
+        <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-pink-500"></div>
+    </div>
 
     <div id="toast">LINK COPIED TO VOID</div>
 
@@ -160,25 +220,27 @@
     <div id="screen-chat" class="screen">
         <header class="p-4 flex items-center justify-between border-b border-white/5 bg-black/50 backdrop-blur-lg">
             <button id="btn-back" class="text-white/30 p-2"><i data-lucide="chevron-left"></i></button>
-            <div class="text-center">
+            <div class="text-center overflow-hidden h-[40px] flex flex-col justify-center">
                 <p class="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em]" id="chat-title">Whisper Room</p>
-                <p class="text-[9px] text-white/20 font-bold" id="chat-subtitle">#000000</p>
-                <p class="text-[9px] text-white/40 font-bold" id="creator-id"></p>
-                <p class="text-[8px] text-white/40 font-bold mt-1 uppercase tracking-wider flex items-center justify-center gap-1">
-                    <i data-lucide="clock" size="8"></i> <span id="timer-display">--:--:--</span> LEFT
-                </p>
+                <div id="info-carousel" class="relative h-[15px]">
+                    <p class="nav-info-item absolute inset-0 transition-all duration-500 opacity-100" id="chat-subtitle">#000000</p>
+                    <p class="nav-info-item absolute inset-0 transition-all duration-500 opacity-0" id="creator-id"></p>
+                    <div class="nav-info-item absolute inset-0 transition-all duration-500 opacity-0 text-[8px] text-white/40 font-bold uppercase tracking-wider flex items-center justify-center gap-1">
+                        <i data-lucide="clock" size="8"></i> <span id="timer-display">--:--:--</span> LEFT
+                    </div>
+                </div>
             </div>
             <button id="btn-share" class="p-2 bg-white/5 rounded-xl border border-white/10 active:scale-90 transition-transform">
                 <i data-lucide="share-2" size="16"></i>
             </button>
         </header>
 
-        <div class="bg-white/5 border-b border-white/5 py-2 px-4 text-center min-h-[36px] flex items-center justify-center">
-             <p id="void-prompt" class="text-[10px] text-cyan-400 font-bold italic prompt-glitch tracking-wide">
-                Initializing the void...
-             </p>
-        </div>
 
+        <div id="prompt-strip" class="w-full overflow-x-auto py-3 px-4 border-b border-white/5 hide-scroll">
+            <div class="flex space-x-3">
+                <!-- Prompts will be injected here -->
+            </div>
+        </div>
         <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-2 hide-scroll"></div>
         
         <div id="reply-preview" class="hidden px-4 py-3 bg-white/5 border-t border-white/10 flex justify-between items-center text-[10px]">
@@ -256,17 +318,28 @@ try {
         let replyingTo = null;
         let senderIdentity = 'anon';
         let timerInterval = null;
+        let infoCarouselInterval = null;
 
-        const PROMPTS = [
-            "Whisper a secret the creator should know...",
-            "What's your first impression of this mask?",
-            "If you had 24 hours of total anonymity, what would you say?",
-            "The void is listening. Be bold.",
-            "Say something you'd never say in a DM."
+        const NEW_PROMPTS = [
+            "Biggest lie you told your African parents?",
+            "Ever faked speaking in tongues or fainted in church?",
+            "Funny village or NYSC story you’ll never forget?",
+            "Something you did in boarding school you can’t admit?",
+            "Worst JAMB or WAEC experience?",
+            "If you could slap one public figure and walk away, who?"
         ];
 
         // UI HELPERS
         lucide.createIcons();
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const showLoading = () => {
+            loadingOverlay.classList.remove('hidden');
+            setTimeout(() => loadingOverlay.classList.add('visible'), 10);
+        };
+        const hideLoading = () => {
+            loadingOverlay.classList.remove('visible');
+            setTimeout(() => loadingOverlay.classList.add('hidden'), 300);
+        };
         const showScreen = (id) => {
             document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
             document.getElementById(`screen-${id}`).classList.add('active');
@@ -279,12 +352,40 @@ try {
             setTimeout(() => toast.classList.remove('show'), 2000);
         };
 
-        const updatePrompt = () => {
-            const el = document.getElementById('void-prompt');
-            if (el) el.textContent = PROMPTS[Math.floor(Math.random() * PROMPTS.length)];
+        const renderPrompts = () => {
+            const container = document.querySelector('#prompt-strip .flex');
+            if (!container) return;
+            container.innerHTML = '';
+            NEW_PROMPTS.forEach((prompt, index) => {
+                const card = document.createElement('div');
+                card.className = `prompt-card prompt-card-${(index % 6) + 1}`;
+                card.textContent = prompt;
+                card.onclick = () => {
+                    const chatInput = document.getElementById('chat-input');
+                    chatInput.value = prompt;
+                    chatInput.focus();
+                    chatInput.dispatchEvent(new Event('input', { bubbles: true }));
+                };
+                container.appendChild(card);
+            });
         };
-        setInterval(updatePrompt, 8000);
-        updatePrompt();
+
+        const startInfoCarousel = () => {
+            if (infoCarouselInterval) clearInterval(infoCarouselInterval);
+            const items = document.querySelectorAll('.nav-info-item');
+            let currentIndex = 0;
+            infoCarouselInterval = setInterval(() => {
+                items[currentIndex].classList.remove('active');
+                items[currentIndex].classList.remove('opacity-100');
+                items[currentIndex].classList.add('opacity-0');
+
+                currentIndex = (currentIndex + 1) % items.length;
+
+                items[currentIndex].classList.add('active');
+                items[currentIndex].classList.add('opacity-100');
+                items[currentIndex].classList.remove('opacity-0');
+            }, 3000);
+        };
 
         // AUTH INITIALIZATION
         const initAuth = async () => {
@@ -315,8 +416,12 @@ try {
 
         const checkHash = () => {
             const rid = window.location.hash.slice(1);
-            if (rid) joinRoom(rid);
-            else showScreen('home');
+            if (rid) {
+                showLoading();
+                joinRoom(rid);
+            } else {
+                showScreen('home');
+            }
         };
         window.addEventListener('hashchange', checkHash);
 
@@ -381,48 +486,66 @@ try {
         };
 
         const joinRoom = async (rid) => {
-            if (!db) return;
-            const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid));
-            
-            document.querySelectorAll('.card').forEach(c => c.classList.remove('loading'));
-            document.querySelectorAll('.loading-shimmer').forEach(s => s.classList.add('hidden'));
-
-            if (!snap.exists()) {
-                window.location.hash = '';
+            if (!db) {
+                hideLoading();
                 return;
             }
-            const data = snap.data();
-            if (Date.now() > data.expiresAt) {
-                alert("This frequency has faded.");
-                window.location.hash = '';
-                return;
-            }
+            try {
+                const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid));
 
-            currentRoom = data;
-            document.getElementById('chat-title').textContent = data.type === 'request' ? 'Request Room' : 'Global Vibe';
-            document.getElementById('chat-subtitle').textContent = `#${rid.toUpperCase()}`;
-            if (data.ownerId) {
-                document.getElementById('creator-id').textContent = `CREATOR: ${data.ownerId.substring(0, 6).toUpperCase()}`;
-            }
-            showScreen('chat');
-            startTimer(data.expiresAt);
-            listenToChat(rid);
-            
-            // Add to history if not already there
-            const historyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid);
-            const historySnap = await getDoc(historyRef);
-            if (!historySnap.exists()) {
-                await setDoc(historyRef, {
-                    roomId: rid,
-                    type: data.type,
-                    timestamp: Date.now(),
-                    expiresAt: data.expiresAt,
-                    unread: 0
-                });
-            } else {
-                await updateDoc(historyRef, {
-                    unread: 0
-                }).catch(() => {});
+                document.querySelectorAll('.card').forEach(c => c.classList.remove('loading'));
+                document.querySelectorAll('.loading-shimmer').forEach(s => s.classList.add('hidden'));
+
+                if (!snap.exists()) {
+                    window.location.hash = '';
+                    hideLoading();
+                    return;
+                }
+                const data = snap.data();
+                if (Date.now() > data.expiresAt) {
+                    alert("This frequency has faded.");
+                    window.location.hash = '';
+                    hideLoading();
+                    return;
+                }
+
+                currentRoom = data;
+                document.getElementById('chat-title').textContent = data.type === 'request' ? 'Request Room' : 'Global Vibe';
+                document.getElementById('chat-subtitle').textContent = `#${rid.toUpperCase()}`;
+                if (data.ownerId) {
+                    document.getElementById('creator-id').textContent = `CREATOR: ${data.ownerId.substring(0, 6).toUpperCase()}`;
+                }
+                showScreen('chat');
+                startTimer(data.expiresAt);
+                listenToChat(rid);
+                startInfoCarousel();
+
+                // Add to history if not already there
+                const historyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid);
+                const historySnap = await getDoc(historyRef);
+                if (!historySnap.exists()) {
+                    await setDoc(historyRef, {
+                        roomId: rid,
+                        type: data.type,
+                        timestamp: Date.now(),
+                        expiresAt: data.expiresAt,
+                        unread: 0
+                    });
+                    // Add a system message for new member joining
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoom.id, 'messages'), {
+                        type: 'system',
+                        text: '👋 A new member joined the room',
+                        createdAt: serverTimestamp()
+                    });
+                } else {
+                    await updateDoc(historyRef, {
+                        unread: 0
+                    }).catch(() => {});
+                }
+                hideLoading();
+            } catch (error) {
+                console.error("Failed to join room:", error);
+                hideLoading();
             }
         };
 
@@ -436,6 +559,15 @@ try {
                 snap.docs.forEach(docSnap => {
                     const m = docSnap.data();
                     const mid = docSnap.id;
+
+                    if (m.type === 'system') {
+                        const systemMsg = document.createElement('div');
+                        systemMsg.className = 'text-center text-[10px] text-white/30 font-bold my-4';
+                        systemMsg.textContent = m.text;
+                        container.appendChild(systemMsg);
+                        return;
+                    }
+
                     const isMe = m.uid === user.uid;
                     const isBurned = m.status === 'burned';
                     
@@ -535,6 +667,7 @@ try {
 
         // START
         initAuth();
+        renderPrompts();
 
         // EVENT LISTENERS
         document.getElementById('btn-create-request').onclick = createRequestRoom;
