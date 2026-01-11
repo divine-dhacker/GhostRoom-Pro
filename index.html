@@ -177,6 +177,49 @@
             opacity: 1;
             transform: translateY(0);
         }
+
+        .msg-wrapper {
+            position: relative;
+        }
+
+        .reply-icon {
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-right: 10px;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        @media (min-width: 768px) {
+            body {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }
+            .main-container {
+                width: 100%;
+                max-width: 1200px;
+                height: 90vh;
+                max-height: 800px;
+                display: flex;
+                border: 1px solid var(--border);
+                border-radius: 32px;
+                overflow: hidden;
+                box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+            }
+            #screen-home {
+                width: 35%;
+                border-right: 1px solid var(--border);
+            }
+            #screen-chat {
+                width: 65%;
+            }
+            .main-container > #screen-home.active {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
@@ -187,37 +230,43 @@
 
     <div id="toast">LINK COPIED TO VOID</div>
 
-    <!-- HOME SCREEN -->
-    <div id="screen-home" class="screen active p-6 overflow-y-auto pb-32 hide-scroll">
-        <header class="mt-8 mb-10 flex justify-between items-start">
-            <div>
-                <h1 class="text-4xl font-extrabold tracking-tighter italic">GHOSTROOM</h1>
-                <p class="text-white/30 text-[10px] mt-1 font-bold tracking-widest uppercase" id="user-id-display">Syncing Frequency...</p>
-            </div>
-            <div id="connection-dot" class="w-2 h-2 rounded-full bg-red-500 mt-4 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-        </header>
+    <div class="main-container">
+        <!-- HOME SCREEN -->
+        <div id="screen-home" class="screen active p-6 overflow-y-auto pb-32 hide-scroll">
+            <header class="p-6 rounded-3xl mb-10 flex justify-between items-start bg-gradient-to-br from-white/[.05] to-white/[.02] border border-white/10 shadow-lg">
+                <div>
+                    <h1 class="text-4xl font-extrabold tracking-tighter italic">GHOSTROOM</h1>
+                    <p class="text-white/30 text-[10px] mt-1 font-bold tracking-widest uppercase" id="user-id-display">Syncing Frequency...</p>
+                </div>
+                <div id="connection-dot" class="w-2 h-2 rounded-full bg-red-500 mt-4 shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+            </header>
 
-        <div class="grid grid-cols-2 gap-4 mb-10">
-            <button id="btn-create-request" class="card p-6 text-left border-pink-500/30">
-                <div id="shimmer-request" class="hidden loading-shimmer"></div>
-                <i data-lucide="link" class="text-pink-500 mb-3"></i>
-                <h3 class="font-bold text-sm">Bio Link</h3>
-                <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Follower Requests</p>
-            </button>
-            <button id="btn-create-community" class="card p-6 text-left">
-                <div id="shimmer-public" class="hidden loading-shimmer"></div>
-                <i data-lucide="flame" class="text-orange-500 mb-3"></i>
-                <h3 class="font-bold text-sm">Public Vibe</h3>
-                <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Global Chat</p>
-            </button>
+            <div class="flex gap-4 mb-10">
+                <button id="btn-create-request" class="card p-6 text-left border-pink-500/30 w-1/3">
+                    <div id="shimmer-request" class="hidden loading-shimmer"></div>
+                    <i data-lucide="link" class="text-pink-500 mb-3"></i>
+                    <h3 class="font-bold text-sm">Bio Link</h3>
+                    <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Follower Requests</p>
+                </button>
+                <button id="btn-create-community" class="card p-6 text-left w-1/3">
+                    <div id="shimmer-public" class="hidden loading-shimmer"></div>
+                    <i data-lucide="flame" class="text-orange-500 mb-3"></i>
+                    <h3 class="font-bold text-sm">Public Vibe</h3>
+                    <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Global Chat</p>
+                </button>
+                <button id="btn-join-room" class="card p-6 text-left w-1/3">
+                    <i data-lucide="hash" class="text-blue-500 mb-3"></i>
+                    <h3 class="font-bold text-sm">Enter Room Code</h3>
+                    <p class="text-[10px] text-white/30 font-black uppercase tracking-wider">Join a Frequency</p>
+                </button>
+            </div>
+
+            <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4 px-2">Frequency Inbox</h4>
+            <div id="history-container" class="space-y-3"></div>
         </div>
 
-        <h4 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/20 mb-4 px-2">Frequency Inbox</h4>
-        <div id="history-container" class="space-y-3"></div>
-    </div>
-
-    <!-- CHAT SCREEN -->
-    <div id="screen-chat" class="screen">
+        <!-- CHAT SCREEN -->
+        <div id="screen-chat" class="screen">
         <header class="p-4 flex items-center justify-between border-b border-white/5 bg-black/50 backdrop-blur-lg">
             <button id="btn-back" class="text-white/30 p-2"><i data-lucide="chevron-left"></i></button>
             <div class="text-center overflow-hidden h-[40px] flex flex-col justify-center">
@@ -275,12 +324,13 @@
                 </button>
             </form>
         </div>
+        </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, updateDoc, getDoc, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, addDoc, onSnapshot, serverTimestamp, updateDoc, getDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
 
        // FIREBASE INITIALIZATION 
 let firebaseApp, auth, db, appId;
@@ -341,9 +391,39 @@ try {
             setTimeout(() => loadingOverlay.classList.add('hidden'), 300);
         };
         const showScreen = (id) => {
-            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-            document.getElementById(`screen-${id}`).classList.add('active');
+            if (window.innerWidth >= 768) {
+                if (id === 'chat') {
+                    document.getElementById('screen-chat').classList.add('active');
+                    document.getElementById('btn-back').style.display = 'none';
+                } else {
+                    document.getElementById('screen-chat').classList.remove('active');
+                }
+            } else {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(`screen-${id}`).classList.add('active');
+                document.getElementById('btn-back').style.display = 'block';
+            }
         };
+
+        const handleView = () => {
+            if (window.innerWidth < 768) {
+                const homeScreen = document.getElementById('screen-home');
+                const chatScreen = document.getElementById('screen-chat');
+                if (window.location.hash.slice(1)) {
+                    homeScreen.classList.remove('active');
+                    chatScreen.classList.add('active');
+                } else {
+                    homeScreen.classList.add('active');
+                    chatScreen.classList.remove('active');
+                }
+            } else {
+                document.getElementById('screen-home').classList.add('active');
+                 if (!window.location.hash.slice(1)) {
+                   document.getElementById('screen-chat').classList.remove('active');
+                }
+            }
+        }
+        window.addEventListener('resize', handleView);
 
         const showToast = (text) => {
             const toast = document.getElementById('toast');
@@ -491,7 +571,8 @@ try {
                 return;
             }
             try {
-                const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid));
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid);
+                const snap = await getDoc(roomRef);
 
                 document.querySelectorAll('.card').forEach(c => c.classList.remove('loading'));
                 document.querySelectorAll('.loading-shimmer').forEach(s => s.classList.add('hidden'));
@@ -509,6 +590,22 @@ try {
                     return;
                 }
 
+                if (data.type === 'request') {
+                    const participantsRef = collection(roomRef, 'participants');
+                    const participantsSnap = await getDocs(participantsRef);
+                    const isParticipant = participantsSnap.docs.some(doc => doc.id === user.uid);
+
+                    if (participantsSnap.size >= 2 && !isParticipant) {
+                        alert("This bio link is already full.");
+                        window.location.hash = '';
+                        hideLoading();
+                        return;
+                    }
+                     if (!isParticipant) {
+                        await setDoc(doc(participantsRef, user.uid), { joinedAt: serverTimestamp() });
+                    }
+                }
+
                 currentRoom = data;
                 document.getElementById('chat-title').textContent = data.type === 'request' ? 'Request Room' : 'Global Vibe';
                 document.getElementById('chat-subtitle').textContent = `#${rid.toUpperCase()}`;
@@ -520,7 +617,6 @@ try {
                 listenToChat(rid);
                 startInfoCarousel();
 
-                // Add to history if not already there
                 const historyRef = doc(db, 'artifacts', appId, 'users', user.uid, 'history', rid);
                 const historySnap = await getDoc(historyRef);
                 if (!historySnap.exists()) {
@@ -531,16 +627,13 @@ try {
                         expiresAt: data.expiresAt,
                         unread: 0
                     });
-                    // Add a system message for new member joining
                     await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoom.id, 'messages'), {
                         type: 'system',
                         text: '👋 A new member joined the room',
                         createdAt: serverTimestamp()
                     });
                 } else {
-                    await updateDoc(historyRef, {
-                        unread: 0
-                    }).catch(() => {});
+                    await updateDoc(historyRef, { unread: 0 }).catch(() => {});
                 }
                 hideLoading();
             } catch (error) {
@@ -550,55 +643,161 @@ try {
         };
 
         const listenToChat = (rid) => {
-            if (unsubChat) unsubChat();
-            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', rid, 'messages'), orderBy('createdAt', 'asc'), limit(100));
-            
-            unsubChat = onSnapshot(q, (snap) => {
-                const container = document.getElementById('chat-messages');
-                container.innerHTML = '';
-                snap.docs.forEach(docSnap => {
-                    const m = docSnap.data();
-                    const mid = docSnap.id;
+    if (unsubChat) unsubChat();
+    const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', rid, 'messages'), orderBy('createdAt', 'asc'), limit(100));
 
-                    if (m.type === 'system') {
-                        const systemMsg = document.createElement('div');
-                        systemMsg.className = 'text-center text-[10px] text-white/30 font-bold my-4';
-                        systemMsg.textContent = m.text;
-                        container.appendChild(systemMsg);
-                        return;
-                    }
+    unsubChat = onSnapshot(q, (snap) => {
+        const container = document.getElementById('chat-messages');
+        const messages = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-                    const isMe = m.uid === user.uid;
-                    const isBurned = m.status === 'burned';
-                    
-                    const wrapper = document.createElement('div');
-                    wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full group`;
-                    
-                    let identityLabel = '';
-                    if (!isMe) {
-                        const isOwner = currentRoom.ownerId === m.uid;
-                        const name = isOwner ? 'CREATOR ✦' : (m.identity === 'custom' ? (m.customName || 'Ghost') : `GHOST_${m.uid.substring(0,4)}`);
-                        identityLabel = `<div class="text-[9px] ${isOwner ? 'text-pink-500' : 'text-white/30'} font-black mb-1 px-3 uppercase">${name}</div>`;
-                    }
+        container.innerHTML = '';
 
-                    wrapper.innerHTML = `
-                        ${identityLabel}
-                        <div id="msg-${mid}" class="msg-bubble ${isMe ? 'bg-pink-600 msg-sent' : 'bg-white/5 border border-white/10 msg-received'}
-                             ${m.isGhost && !isBurned ? 'msg-ghost' : ''} ${isBurned ? 'msg-burned' : ''}">
-                            ${isBurned ? '✦ VANISHED ✦' : m.text}
+        messages.forEach(m => {
+            const mid = m.id;
+
+            if (m.type === 'system') {
+                const systemMsg = document.createElement('div');
+                systemMsg.className = 'text-center text-[10px] text-white/30 font-bold my-4';
+                systemMsg.textContent = m.text;
+                container.appendChild(systemMsg);
+                return;
+            }
+
+            const isMe = m.uid === user.uid;
+            const isBurned = m.status === 'burned';
+
+            const wrapper = document.createElement('div');
+            wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} w-full group msg-wrapper`;
+            wrapper.dataset.mid = mid;
+            wrapper.dataset.uid = m.uid;
+
+            let identityLabel = '';
+            if (!isMe) {
+                const isOwner = currentRoom.ownerId === m.uid;
+                const name = isOwner ? 'CREATOR ✦' : (m.identity === 'custom' ? (m.customName || 'Ghost') : `GHOST_${m.uid.substring(0, 4)}`);
+                identityLabel = `<div class="text-[9px] ${isOwner ? 'text-pink-500' : 'text-white/30'} font-black mb-1 px-3 uppercase">${name}</div>`;
+            }
+
+            let replyHTML = '';
+            if (m.replyingTo && m.replyingTo.mid && m.replyingTo.uid) {
+                const originalMsg = messages.find(msg => msg.id === m.replyingTo.mid);
+                if (originalMsg) {
+                    const originalSender = m.replyingTo.uid === user.uid ? 'You' : (m.replyingTo.isOwner ? 'CREATOR ✦' : 'Ghost');
+                    replyHTML = `
+                        <div class="text-[10px] bg-black/20 p-2 rounded-lg mb-1 border-l-2 border-pink-500/50">
+                            <p class="font-bold">${originalSender}</p>
+                            <p class="text-white/70">${originalMsg.text.substring(0, 50)}${originalMsg.text.length > 50 ? '...' : ''}</p>
                         </div>
                     `;
+                }
+            }
 
-                    const bubble = wrapper.querySelector('.msg-bubble');
-                    if (m.isGhost && !isBurned) {
-                        bubble.onclick = () => revealGhost(mid);
-                    }
+            wrapper.innerHTML = `
+                ${identityLabel}
+                <div class="relative">
+                    <div class="reply-icon text-white/50"><i data-lucide="reply" size="16"></i></div>
+                    <div id="msg-${mid}" class="msg-bubble ${isMe ? 'bg-pink-600 msg-sent' : 'bg-white/5 border border-white/10 msg-received'}
+                         ${m.isGhost && !isBurned ? 'msg-ghost' : ''} ${isBurned ? 'msg-burned' : ''}" style="transition: transform 0.1s ease-out;">
+                        ${replyHTML}
+                        ${isBurned ? '✦ VANISHED ✦' : m.text}
+                    </div>
+                </div>
+            `;
 
-                    container.appendChild(wrapper);
-                });
-                container.scrollTop = container.scrollHeight;
-            }, (err) => console.error("Snapshot error:", err));
-        };
+            const bubble = wrapper.querySelector('.msg-bubble');
+            if (m.isGhost && !isBurned) {
+                bubble.onclick = () => revealGhost(mid);
+            }
+
+            if (!isMe) {
+                initSwipeToReply(wrapper);
+            }
+
+            container.appendChild(wrapper);
+        });
+        lucide.createIcons();
+        container.scrollTop = container.scrollHeight;
+    }, (err) => console.error("Snapshot error:", err));
+};
+
+let touchStartX = 0;
+let touchCurrentX = 0;
+let activeTouchEl = null;
+
+function initSwipeToReply(el) {
+    el.addEventListener('touchstart', handleTouchStart, { passive: true });
+    el.addEventListener('touchmove', handleTouchMove, { passive: false });
+    el.addEventListener('touchend', handleTouchEnd, { passive: true });
+}
+
+function handleTouchStart(e) {
+    touchStartX = e.touches[0].clientX;
+    activeTouchEl = e.currentTarget.querySelector('.msg-bubble');
+}
+
+function handleTouchMove(e) {
+    if (!activeTouchEl) return;
+    touchCurrentX = e.touches[0].clientX;
+    const diffX = touchCurrentX - touchStartX;
+
+    if (diffX > 0) {
+        e.preventDefault();
+        window.requestAnimationFrame(() => {
+            activeTouchEl.style.transform = `translateX(${diffX}px)`;
+            const icon = activeTouchEl.parentElement.querySelector('.reply-icon');
+            icon.style.opacity = Math.min(diffX / 60, 1);
+            icon.style.transform = `translateY(-50%) scale(${Math.min(diffX / 60, 1)})`;
+        });
+    }
+}
+
+function handleTouchEnd(e) {
+    if (!activeTouchEl) return;
+    const diffX = touchCurrentX - touchStartX;
+
+    if (diffX > 60) {
+        const mid = activeTouchEl.parentElement.parentElement.dataset.mid;
+        triggerReply(mid);
+    }
+
+    window.requestAnimationFrame(() => {
+        activeTouchEl.style.transform = 'translateX(0)';
+        const icon = activeTouchEl.parentElement.querySelector('.reply-icon');
+        icon.style.opacity = 0;
+        icon.style.transform = 'translateY(-50%) scale(0)';
+    });
+
+    touchStartX = 0;
+    touchCurrentX = 0;
+    activeTouchEl = null;
+}
+
+const triggerReply = (mid) => {
+    const msgEl = document.getElementById(`msg-${mid}`);
+    if (!msgEl) return;
+
+    const originalText = msgEl.textContent.trim();
+    const originalSenderWrapper = msgEl.closest('.msg-wrapper');
+    const originalUid = originalSenderWrapper ? originalSenderWrapper.dataset.uid : null;
+    const isOwner = currentRoom.ownerId === originalUid;
+
+
+    replyingTo = {
+        mid: mid,
+        text: originalText,
+        uid: originalUid,
+        isOwner: isOwner
+    };
+
+    document.getElementById('reply-text').textContent = originalText;
+    document.getElementById('reply-preview').classList.remove('hidden');
+    document.getElementById('chat-input').focus();
+};
+
+document.getElementById('btn-cancel-reply').onclick = () => {
+    replyingTo = null;
+    document.getElementById('reply-preview').classList.add('hidden');
+};
 
         const revealGhost = async (mid) => {
             const el = document.getElementById(`msg-${mid}`);
@@ -672,6 +871,12 @@ try {
         // EVENT LISTENERS
         document.getElementById('btn-create-request').onclick = createRequestRoom;
         document.getElementById('btn-create-community').onclick = createCommunityRoom;
+        document.getElementById('btn-join-room').onclick = () => {
+            const rid = prompt("Enter the Room Code to join:");
+            if (rid) {
+                window.location.hash = rid;
+            }
+        };
         document.getElementById('btn-back').onclick = () => window.location.hash = '';
         
         document.getElementById('btn-share').onclick = () => {
@@ -721,7 +926,7 @@ try {
             input.value = '';
             input.style.height = 'auto';
 
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoom.id, 'messages'), {
+            const messageData = {
                 text,
                 uid: user.uid,
                 createdAt: serverTimestamp(),
@@ -729,7 +934,15 @@ try {
                 status: 'active',
                 identity: senderIdentity,
                 customName: senderIdentity === 'custom' ? document.getElementById('custom-name-input').value : null
-            });
+            };
+
+            if (replyingTo) {
+                messageData.replyingTo = replyingTo;
+                replyingTo = null;
+                document.getElementById('reply-preview').classList.add('hidden');
+            }
+
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoom.id, 'messages'), messageData);
 
             if (currentRoom.type === 'request' && user.uid !== currentRoom.ownerId) {
                 const ownerHistoryRef = doc(db, 'artifacts', appId, 'users', currentRoom.ownerId, 'history', currentRoom.id);
