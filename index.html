@@ -320,6 +320,12 @@ try {
         let timerInterval = null;
         let infoCarouselInterval = null;
         let swipeState = {}; // For swipe-to-reply
+        let draftMessage = { text: '', replyingTo: null };
+
+        const updateDraft = () => {
+            draftMessage.text = document.getElementById('chat-input').value;
+            draftMessage.replyingTo = replyingTo;
+        };
 
         // SWIPE TO REPLY HANDLERS
         const handleTouchStart = (e, mid, isMe, text) => {
@@ -374,6 +380,7 @@ try {
                 replyingTo = { id: mid, text: swipeState[mid].text };
                 document.getElementById('reply-preview').classList.remove('hidden');
                 document.getElementById('reply-text').textContent = replyingTo.text;
+                updateDraft();
             }
 
             // Reset styles
@@ -555,11 +562,6 @@ try {
                 return;
             }
 
-            // Reset chat state when entering a new room
-            document.getElementById('chat-input').value = '';
-            replyingTo = null;
-            document.getElementById('reply-preview').classList.add('hidden');
-
             try {
                 const snap = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', rid));
 
@@ -580,6 +582,24 @@ try {
                 }
 
                 currentRoom = data;
+
+                if (currentRoom.ownerId === user.uid) {
+                    // Restore draft in user's own room
+                    document.getElementById('chat-input').value = draftMessage.text;
+                    replyingTo = draftMessage.replyingTo;
+                    if (replyingTo) {
+                        document.getElementById('reply-preview').classList.remove('hidden');
+                        document.getElementById('reply-text').textContent = replyingTo.text;
+                    } else {
+                        document.getElementById('reply-preview').classList.add('hidden');
+                    }
+                } else {
+                    // Clear draft in other users' rooms
+                    document.getElementById('chat-input').value = '';
+                    replyingTo = null;
+                    document.getElementById('reply-preview').classList.add('hidden');
+                }
+
                 document.getElementById('chat-title').textContent = data.type === 'request' ? 'Request Room' : 'Global Vibe';
                 document.getElementById('chat-subtitle').textContent = `#${rid.toUpperCase()}`;
                 if (data.ownerId) {
@@ -766,6 +786,7 @@ try {
         document.getElementById('btn-cancel-reply').onclick = () => {
             replyingTo = null;
             document.getElementById('reply-preview').classList.add('hidden');
+            updateDraft();
         };
 
         document.getElementById('btn-share').onclick = () => {
@@ -827,11 +848,15 @@ try {
 
             if (replyingTo) {
                 messageData.replyingTo = replyingTo;
-                replyingTo = null;
-                document.getElementById('reply-preview').classList.add('hidden');
             }
 
             await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoom.id, 'messages'), messageData);
+
+            // Reset draft and UI
+            replyingTo = null;
+            draftMessage = { text: '', replyingTo: null };
+            document.getElementById('chat-input').value = ''; // Also clear the input visually
+            document.getElementById('reply-preview').classList.add('hidden');
 
             if (currentRoom.type === 'request' && user.uid !== currentRoom.ownerId) {
                 const ownerHistoryRef = doc(db, 'artifacts', appId, 'users', currentRoom.ownerId, 'history', currentRoom.id);
@@ -848,6 +873,7 @@ try {
         document.getElementById('chat-input').addEventListener('input', function() {
             this.style.height = 'auto';
             this.style.height = this.scrollHeight + 'px';
+            updateDraft();
         });
 
     </script>
